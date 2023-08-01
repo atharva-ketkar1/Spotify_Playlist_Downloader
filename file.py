@@ -4,6 +4,13 @@ from moviepy.editor import *
 import subprocess
 from playlist import Playlist_Methods as spotify, token
 from music import MusicApp
+import re
+
+# Function to remove possible illegal characters from the 
+# playlist name which will be the folder name as well
+def simplify_filename(filename):
+    simplified = re.sub(r'[^\w\s]', '', filename)
+    return simplified.lower()
 
 # Function to remove possible illegal characters from the 
 # playlist name which will be the folder name as well
@@ -11,18 +18,15 @@ def remove_illegal_characters(s):
     illegal_chars = r'<>:"/\|?*'
     substitutions = str.maketrans('', '', illegal_chars)
     name = s.translate(substitutions)
-
     return name
 
 # Creates the folder that contains all the songs if the 
 # folder doesn't already exist
 def create_folder(path, playlist_name):
-    folder_name = remove_illegal_characters(playlist_name)
+    folder_name = simplify_filename(playlist_name)
     full_path = os.path.join(path, folder_name)
-
     if not os.path.exists(full_path):
         os.makedirs(full_path)
-
     return full_path
 
 # Splits the audio in half due to imminent pytube download error
@@ -32,8 +36,7 @@ def split_audio_in_half(input_file):
     audio_clip = AudioFileClip(input_file)
     audio_duration = audio_clip.duration
     audio_clip.close()
-
-    midpoint = audio_duration 
+    midpoint = audio_duration
 
     # Export the first half of the audio using ffmpeg
     first_half_output = os.path.splitext(input_file)[0] + "_first_half.mp4"
@@ -42,18 +45,33 @@ def split_audio_in_half(input_file):
     os.replace(first_half_output, input_file)
 
 # Gets the audio file using pytube and downloads it to the folder
-def get_audio(link, path):
+def get_audio(link, path, song_name):
     try:
-        youtube = YouTube(link)
-        audio_stream = youtube.streams.filter(only_audio=True, file_extension="mp4").first()
-        mp4_file = audio_stream.download(output_path=path)
+        # Check if the song is already downloaded
+        if song_already_downloaded(song_name, path):
+            print(f"{song_name} is already downloaded. Skipping...")
+        else:
+            youtube = YouTube(link)
+            audio_stream = youtube.streams.filter(only_audio=True, file_extension="mp4").first()
+            mp4_file = audio_stream.download(output_path=path)
 
-        # Split the audio file in half and delete the second half
-        split_audio_in_half(mp4_file)
+            # Split the audio file in half and delete the second half
+            split_audio_in_half(mp4_file)
 
-        print("Download and split complete!")
-    except Exception as e: print(e)
+            print(f"{song_name} download and split complete!")
+    except Exception as e: 
+        print(e)
 
+# Checks if a song is already present in the folder and skips the API search and download 
+# if present
+def song_already_downloaded(song_name, playlist_folder):
+    song_name_simplified = simplify_filename(song_name)
+    for file in os.listdir(playlist_folder):
+        if file.lower().endswith(".mp4"):
+            file_name_simplified = simplify_filename(os.path.splitext(file)[0])
+            if song_name_simplified in file_name_simplified:
+                return True
+    return False
 
 
 if __name__ == '__main__':
@@ -83,9 +101,10 @@ if __name__ == '__main__':
                 youtube_link = music_app.search_yt(youtube_query)
 
                 folder_path = create_folder(base_path, playlist_name)
-                get_audio(youtube_link, folder_path)
+
+                get_audio(youtube_link, folder_path, track_name)
+
         else:
             pass
     else:
         print("Invalid playlist link provided.")
-
