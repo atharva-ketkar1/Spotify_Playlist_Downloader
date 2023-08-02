@@ -1,0 +1,5 @@
+google_api_python_client==2.95.0
+moviepy==1.0.3
+python-dotenv==1.0.0
+pytube==15.0.0
+Requests==2.31.0
