@@ -26,7 +26,7 @@ of those songs and saves them as MP4 files in a specified folder.
 1. Clone the repository to your local machine:
 
 ```bash
-git clone https://github.com/atharva-ketkar1/Spotify-Playlist-Downloader.git
+git clone https://github.com/atharva-ketkar1/Spotify_Playlist_Downloader.git
 cd Spotify-Playlist-Downloader
 ```
 2. Download the requirements.txt file using pip:
